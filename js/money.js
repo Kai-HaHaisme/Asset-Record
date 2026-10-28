@@ -27,7 +27,7 @@ const parseMinor = s => parseDec(s, 2), parseShares = s => parseDec(s, 4), parse
 // 金額顯示：NT$ 1,234／US$ 1,234.56
 function fmtMinor(m, cur) {
   const c = CUR[cur] || CUR.TWD, neg = m < 0, a = Math.abs(m);
-  const v = c.dec ? fmtDec(a, 2, 2).replace(/\.00$/, '') : Math.round(a / 100).toLocaleString('en-US');
+  const v = c.dec ? Math.floor(a / 100).toLocaleString('en-US') + (a % 100 ? '.' + String(a % 100).padStart(2, '0') : '') : Math.round(a / 100).toLocaleString('en-US');
   return (neg ? '−' : '') + c.sym + ' ' + v;
 }
 const fmtShares = n => fmtDec(n, 4), fmtPrice = n => fmtDec(n, 2), fmtRate = n => fmtDec(n, 3);
@@ -35,3 +35,5 @@ const fmtShares = n => fmtDec(n, 4), fmtPrice = n => fmtDec(n, 2), fmtRate = n =
 function mulDiv(a, b, d) { const n = BigInt(a) * BigInt(b), q = BigInt(d), neg = n < 0n; const r = ((neg ? -n : n) * 2n + q) / (2n * q); return Number(neg ? -r : r); }
 // 外幣最小單位 → TWD 最小單位（rate 為「1 單位外幣 = 多少 TWD」；沒有匯率回傳 null）
 function toTWD(minor, cur, rate) { if (cur === 'TWD') return minor; if (!(rate > 0)) return null; return Math.round(minor * rate); }
+// 整數 → 可放進輸入框的純數字字串（沒有千分位、去掉多餘的 0）
+const plainDec = (n, dec) => fmtDec(n, dec).replace(/,/g, '').replace('−', '-');

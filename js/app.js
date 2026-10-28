@@ -1,13 +1,9 @@
-/* 主程式（階段 1）：hash 路由、導覽、設定頁（語言外觀、匯率、整庫備份還原、儲存空間、安裝）、備份提醒。
-   各頁面的畫面（存款、投資、保險、計畫、總覽）會在後續階段依序實作。 */
-const $ = s => document.querySelector(s), $$ = s => [...document.querySelectorAll(s)], DAY = 864e5;
-const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const todayStr = () => new Date(Date.now() - new Date().getTimezoneOffset() * 6e4).toISOString().slice(0, 10);
-const fmtTime = ts => new Date(ts).toLocaleString(LT(), { hour12: false });
-const agoDays = ts => Math.floor((Date.now() - ts) / DAY);
-
+/* 主程式：hash 路由、導覽、設定頁（語言外觀、匯率、整庫備份還原、儲存空間、安裝）、備份提醒。
+   各頁面的畫面在 deposit.js、invest.js 等檔案；尚未實作的頁面先顯示占位頁（只列資料筆數）。 */
 let ui = { panel: null, msg: null, rmsg: null }, remind = 14, seq = 0;
 const PAGES = [['overview', '總覽', 4], ['invest', '投資', 2], ['deposit', '存款', 2], ['insurance', '保險', 3], ['plans', '計畫', 3]];
+const PAGE_MOD = { deposit: DepositPage, invest: InvestPage };
+const curPage = () => { const p = location.hash.slice(2).split('/')[0]; return p === 'settings' ? 'settings' : PAGES.find(x => x[0] === p) ? p : 'overview'; };
 const PAGE_STORES = { overview: DB.STORES, invest: ['holdings', 'others'], deposit: ['accounts'], insurance: ['insurance'], plans: ['plans'] };
 
 /* ---------- 路由與導覽 ---------- */
@@ -18,14 +14,14 @@ async function route() {
   $('#tabs').innerHTML = links;
   $('#top').innerHTML = `<h1>${pg === 'settings' ? '設定' : PAGES.find(x => x[0] === pg)[1]}</h1><a href="#/settings">設定</a>`;
   let html;
-  try { html = await banner() + (pg === 'settings' ? await settingsPage() : await placeholder(pg)); }
+  try { html = await banner() + (pg === 'settings' ? await settingsPage() : PAGE_MOD[pg] ? await PAGE_MOD[pg].render() : await placeholder(pg)); }
   catch (e) { html = `<div class="note"><b>無法讀取資料</b>：${esc(e.message || e)}。可能是瀏覽器的無痕模式或儲存空間被限制，請改用一般視窗開啟。</div>`; }
   if (my !== seq) return;
   $('#main').innerHTML = html;
   if (pg === 'settings') { const r = $('#rm'); if (r) r.value = remind; uiSettings(); storage(); }
+  PAGE_MOD[pg]?.after?.();
   scrollTo(0, 0);
 }
-const msgHtml = m => m ? `<div class="msg${m.e ? ' e' : ''}">${m.t}</div>` : '';
 async function banner() {
   const mod = await DB.getMeta('modifiedAt'), bak = await DB.getMeta('lastBackupAt');
   const need = remind > 0 && mod > (bak || 0) && (!bak || agoDays(bak) >= remind);
@@ -114,6 +110,8 @@ async function readImport(file) {
 
 /* ---------- 事件 ---------- */
 document.addEventListener('click', async e => {
+  const mod = PAGE_MOD[curPage()];
+  if (mod) { try { const r = await mod.click(e); if (r === true) { await route(); return; } if (r === 'stay') return; } catch (err) { ui.msg = { e: 1, t: '操作失敗：' + esc(err.message || err) }; await route(); return; } }
   const b = e.target.closest('[data-a]'); if (!b) return;
   const a = b.dataset.a, c = b.dataset.c;
   if (a === 'imp') { $('#file').click(); return; }
@@ -135,13 +133,15 @@ document.addEventListener('click', async e => {
   } catch (err) { ui.msg = { e: 1, t: '操作失敗：' + esc(err.message || err) }; }
   route();
 });
+document.addEventListener('input', e => PAGE_MOD[curPage()]?.input?.(e));
+document.addEventListener('keydown', e => PAGE_MOD[curPage()]?.keydown?.(e));
 document.addEventListener('change', async e => {
   const x = e.target;
   if (x.id === 'rm') { remind = +x.value; await DB.setMeta('settings', { remind }); route(); }
   if (x.id === 'file') { const f = x.files[0]; x.value = ''; if (f) readImport(f); }
   if (x.name === 'im') { $('#imw').hidden = x.value !== 'replace'; $('#imm').hidden = x.value === 'replace'; }
 });
-addEventListener('hashchange', () => { ui = { panel: null, msg: null, rmsg: null }; route(); });
+addEventListener('hashchange', () => { ui = { panel: null, msg: null, rmsg: null }; Object.values(PAGE_MOD).forEach(m => m.reset()); route(); });
 (async () => {
   try { remind = (await DB.getMeta('settings'))?.remind ?? 14; await RATES.load(); } catch (e) {}
   await route();
