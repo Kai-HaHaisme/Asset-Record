@@ -41,3 +41,17 @@ const val = id => $('#' + id)?.value.trim() ?? '';
 const errTo = t => { const e = $('#pe'); if (e) e.textContent = t; return 'stay'; };
 const curOpts = sel => CURS.map(x => `<option ${sel == x ? 'selected' : ''}>${x}</option>`).join('');
 const chgText = (v, last) => { if (!(last > 0) || !(v >= 0)) return ''; const p = (v / last - 1) * 100; return `｜變動 ${p >= 0 ? '+' : '−'}${Math.abs(p).toFixed(1)}%${Math.abs(p) >= 20 ? ' <span class="err">差很多，請確認</span>' : ''}`; };
+
+/* 讀取全部資產資料並換算成 TWD（計畫、總覽共用）。miss = 因為沒有匯率而沒算到的外幣項目數 */
+async function loadAssets() {
+  const [acc, hold, oth] = await Promise.all([DB.all('accounts'), DB.all('holdings'), DB.all('others')]);
+  const hv = h => mulDiv(h.sh, h.price, 10000), cur = m => m == 'TW' ? 'TWD' : 'USD';
+  const cat = {
+    cash: sumTWD(acc.map(a => [a.v, a.c])),
+    stock: sumTWD(hold.map(h => [hv(h), cur(h.m)])),
+    bond: sumTWD(oth.filter(o => o.k != 'other').map(o => [o.v, o.c])),
+    other: sumTWD(oth.filter(o => o.k == 'other').map(o => [o.v, o.c]))
+  };
+  return { acc, hold, oth, cat, total: cat.cash.s + cat.stock.s + cat.bond.s + cat.other.s, miss: cat.cash.miss + cat.stock.miss + cat.bond.miss + cat.other.miss };
+}
+const draftOf = () => { const d = {}; $$('.panel input,.panel select').forEach(i => { if (i.id && i.id.startsWith('f-')) d[i.id.slice(2)] = i.value; }); return d; };

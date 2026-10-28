@@ -2,7 +2,7 @@
    各頁面的畫面在 deposit.js、invest.js 等檔案；尚未實作的頁面先顯示占位頁（只列資料筆數）。 */
 let ui = { panel: null, msg: null, rmsg: null }, remind = 14, seq = 0;
 const PAGES = [['overview', '總覽', 4], ['invest', '投資', 2], ['deposit', '存款', 2], ['insurance', '保險', 3], ['plans', '計畫', 3]];
-const PAGE_MOD = { deposit: DepositPage, invest: InvestPage };
+const PAGE_MOD = { deposit: DepositPage, invest: InvestPage, insurance: InsurancePage, plans: PlansPage };
 const curPage = () => { const p = location.hash.slice(2).split('/')[0]; return p === 'settings' ? 'settings' : PAGES.find(x => x[0] === p) ? p : 'overview'; };
 const PAGE_STORES = { overview: DB.STORES, invest: ['holdings', 'others'], deposit: ['accounts'], insurance: ['insurance'], plans: ['plans'] };
 
@@ -136,7 +136,8 @@ document.addEventListener('click', async e => {
 document.addEventListener('input', e => PAGE_MOD[curPage()]?.input?.(e));
 document.addEventListener('keydown', e => PAGE_MOD[curPage()]?.keydown?.(e));
 document.addEventListener('change', async e => {
-  const x = e.target;
+  const x = e.target, mod = PAGE_MOD[curPage()];
+  if (mod?.change && mod.change(e) === true) { await route(); return; }
   if (x.id === 'rm') { remind = +x.value; await DB.setMeta('settings', { remind }); route(); }
   if (x.id === 'file') { const f = x.files[0]; x.value = ''; if (f) readImport(f); }
   if (x.name === 'im') { $('#imw').hidden = x.value !== 'replace'; $('#imm').hidden = x.value === 'replace'; }
