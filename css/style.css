@@ -53,3 +53,10 @@ label.o{display:flex;gap:8px;align-items:flex-start;margin:6px 0;font-size:14px}
 .hrow>.hl,.hrow>.hr{flex:1 1 100%}
 .up{flex-wrap:wrap}.up .d{white-space:normal}
 }
+
+/* App 鎖畫面與密碼欄位 */
+#lock{position:fixed;inset:0;z-index:100;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px}
+#lock[hidden]{display:none}
+#lock .lk{width:100%;max-width:320px;text-align:center}#lock h1{font-size:20px;margin:0 0 10px}
+#lock input{font-size:22px;letter-spacing:6px;text-align:center;margin:10px 0}#lock a{color:var(--sub);font-size:13px}
+input[type=password]{font:inherit;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:2px;padding:7px 12px;width:100%}
