@@ -42,6 +42,7 @@ const DB = (() => {
     if (typeof r.id !== 'string' || !r.id) return '缺少 id';
     if (!(typeof r.updatedAt === 'number' && r.updatedAt >= 0)) return '缺少 updatedAt';
     for (const [k, t] of Object.entries(SCHEMA[store])) if (!okType(r[k], t)) return `欄位 ${k} 格式不正確`;
+    if (store === 'snapshots') for (const it of r.items || []) if (!it || typeof it.n !== 'string' || !Number.isSafeInteger(it.v)) return '快照明細格式不正確';
     if (store === 'insurance') {   // 繳費紀錄 hist：{id, date, due?, amt, note?}；保障內容 cov：{n, amt}
       for (const h of r.hist || []) if (!h || typeof h !== 'object' || typeof h.id !== 'string' || !isDate(h.date) || !Number.isSafeInteger(h.amt) || (h.due && !isDate(h.due))) return '繳費紀錄格式不正確';
       for (const c of r.cov || []) if (!c || typeof c.n !== 'string' || !Number.isSafeInteger(c.amt)) return '保障內容格式不正確';

@@ -166,5 +166,5 @@ const InsurancePage = (() => {
   }
   const change = e => { if (e.target.id != 'f-f' || !P || P.k != 'form') return false; P.draft = draftOf(); return true; };
   const after = () => { if (P && P.k == 'paid') { $('#paidp')?.scrollIntoView?.({ block: 'center' }); $('#pd-due')?.focus(); } if (fx) { focusMoved(fx); fx = null; } };
-  return { render, click, change, after, reset };
+  return { render, click, change, after, reset, payState, complete };
 })();
