@@ -17,7 +17,7 @@ const DB = (() => {
     accounts: { t: 'enum:D|T', bank: 'str', n: 'str?', c: 'cur', v: 'int', note: 'str?', at: 'date?', rate: 'int?', start: 'date?', mat: 'date?', ord: 'num?' },
     holdings: { m: 'enum:TW|US', sym: 'str', n: 'str', sh: 'int', cost: 'int', price: 'int', at: 'date', note: 'str?', ord: 'num?' },
     others: { k: 'enum:bond|fund|other', n: 'str', c: 'cur', v: 'int', note: 'str?', at: 'date?', ord: 'num?' },
-    insurance: { k: 'str', co: 'str', n: 'str?', who: 'str?', c: 'cur', prem: 'int', mo: 'int', due: 'date', end: 'date?', note: 'str?', ad: 'int?', ord: 'num?' },
+    insurance: { k: 'str', co: 'str', n: 'str?', who: 'str?', c: 'cur', prem: 'int', mo: 'int', due: 'date', end: 'date?', note: 'str?', ad: 'int?', ord: 'num?', status: 'enum:active|ended?', endedOn: 'date?', endNote: 'str?', terms: 'int?', pt: 'int?', hist: 'arr?', cov: 'arr?' },
     plans: { name: 'str', target: 'int', date: 'date?', note: 'str?', mode: 'enum:link|manual', src: 'arr', amt: 'int?', at: 'date?', ord: 'num?' },
     snapshots: { date: 'date', cash: 'int', stock: 'int', bond: 'int', other: 'int', total: 'int', note: 'str?', items: 'arr?', rates: 'obj?' }
   };
@@ -42,6 +42,10 @@ const DB = (() => {
     if (typeof r.id !== 'string' || !r.id) return '缺少 id';
     if (!(typeof r.updatedAt === 'number' && r.updatedAt >= 0)) return '缺少 updatedAt';
     for (const [k, t] of Object.entries(SCHEMA[store])) if (!okType(r[k], t)) return `欄位 ${k} 格式不正確`;
+    if (store === 'insurance') {   // 繳費紀錄 hist：{id, date, due?, amt, note?}；保障內容 cov：{n, amt}
+      for (const h of r.hist || []) if (!h || typeof h !== 'object' || typeof h.id !== 'string' || !isDate(h.date) || !Number.isSafeInteger(h.amt) || (h.due && !isDate(h.due))) return '繳費紀錄格式不正確';
+      for (const c of r.cov || []) if (!c || typeof c.n !== 'string' || !Number.isSafeInteger(c.amt)) return '保障內容格式不正確';
+    }
     return null;
   }
   let d = null;
