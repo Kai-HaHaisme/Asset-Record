@@ -1,5 +1,6 @@
 /* 主程式：hash 路由、導覽、設定頁（語言外觀、匯率、整庫備份還原、儲存空間、安裝）、備份提醒。
    各頁面的畫面在 deposit.js、invest.js 等檔案；尚未實作的頁面先顯示占位頁（只列資料筆數）。 */
+const APP_VERSION = '1.0.0';   // 每次更新請改這個數字，並同步 sw.js 的 CACHE 版本；設定頁「關於」會顯示，可確認有沒有載入新版
 let ui = { panel: null, msg: null, rmsg: null }, remind = 14, seq = 0, encOn = true;
 const PAGES = [['overview', '總覽', 4], ['invest', '投資', 2], ['deposit', '存款', 2], ['insurance', '保險', 3], ['plans', '計畫', 3]];
 const PAGE_MOD = { overview: OverviewPage, deposit: DepositPage, invest: InvestPage, insurance: InsurancePage, plans: PlansPage };
@@ -76,9 +77,7 @@ async function settingsPage() {
   h += securityHtml(P);
   h += `<div class="sec">安裝成 App</div><div class="mt" id="inst" style="margin-top:8px"></div>`;
   h += `<div class="sec">儲存空間</div><div class="mt" style="margin-top:8px"><div id="st1">正在讀取儲存空間資訊…</div><div id="st2" style="margin-top:4px"></div></div>`;
-  h += `<div class="sec">測試用（正式版會移除）</div><div class="bar" style="margin-top:8px"><button class="btn" data-a="sample">載入範例資料</button><button class="btn" data-a="wipe">清除全部資料</button></div>`;
-  if (P?.k === 'wipe') h += `<div class="panel w"><b>清除全部資料？</b>這會刪除所有存款、股票、保險、計畫與快照，無法復原。建議先匯出備份。<div class="r"><button class="btn sm" data-a="pc">取消</button><button class="btn main" data-a="wok">確定清除</button></div></div>`;
-  h += `<div class="sec">關於</div><div class="mt" style="margin-top:8px">資料只存在這個裝置的瀏覽器裡，沒有雲端、沒有帳號。本工具只做記錄，不構成投資或理財建議。</div>`;
+  h += `<div class="sec">關於</div><div class="mt" style="margin-top:8px">資料只存在這個裝置的瀏覽器裡，沒有雲端、沒有帳號。本工具只做記錄，不構成投資或理財建議。</div><div class="mt" style="margin-top:6px">版本：${APP_VERSION}</div>`;
   return h;
 }
 function securityHtml(P) {
@@ -168,7 +167,6 @@ document.addEventListener('click', async e => {
     else if (a === 'rr') { ui.rmsg = { t: '正在更新匯率…' }; route(); const r = await RATES.refresh(); ui.rmsg = r.ok ? { t: '匯率已更新。' } : { e: 1, t: r.msg }; }
     else if (a === 'rset') { if (!(await RATES.setManual(c, $('#rin-' + c).value))) { $('#rerr-' + c).textContent = '請輸入大於 0 的數字'; return; } ui.rmsg = { t: '已設定手動匯率。' }; }
     else if (a === 'rclr') { await RATES.clearManual(c); ui.rmsg = { t: '已恢復使用自動匯率。' }; }
-    else if (a === 'sample') { const S = SAMPLE(); for (const s of DB.STORES) for (const r of S[s]) await DB.put(s, r); ui.msg = { t: '已載入範例資料。' }; }
     else if (a === 'pwok') {
       const env = ui.panel.env, pw = $('#pwd').value, e = t => { $('#pwerr').textContent = t; };
       if (!pw) return e('請輸入備份密碼');
@@ -186,8 +184,6 @@ document.addEventListener('click', async e => {
       ui.panel = null;
     }
     else if (a === 'locknow') { Lock.lock(); return; }
-    else if (a === 'wipe') ui.panel = { k: 'wipe' };
-    else if (a === 'wok') { await DB.clearAll(); ui.panel = null; ui.msg = { t: '已清除全部資料。' }; }
     else return;
   } catch (err) { ui.msg = { e: 1, t: '操作失敗：' + esc(err.message || err) }; }
   route();

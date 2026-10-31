@@ -19,7 +19,7 @@ const InvestPage = (() => {
     const ages = [...hs.map(h => dAgo(h.at || todayStr())), ...bf.map(o => dAgo(o.at || todayStr()))], stale = ages.filter(d => d >= 7).length, oldest = Math.max(0, ...ages);
     let left = `<div class="card"><div class="sec">投資與其他資產</div><div class="big">${tw(stockT + sBF.s + sOT.s)}</div>
       <div class="sum3"><span>股票</span><span>${tw(stockT)}</span><span>債券與基金</span><span>${tw(sBF.s)}</span><span>其他資產</span><span>${tw(sOT.s)}</span></div>
-      ${RATES.FOREIGN.some(c => hs.some(h => cur(h.m) == c) || oth.some(o => o.c == c)) ? `<div class="mt" style="margin-top:8px">${RATES.FOREIGN.map(c => `${c} ${rfmt(RATES.rate(c))}`).join('、')}（1 單位外幣 = 幾 TWD；到「設定」可更新或手動修改）</div>` : ''}${missWarn(miss)}
+      ${RATES.FOREIGN.some(c => hs.some(h => cur(h.m) == c) || oth.some(o => o.c == c)) ? `<div class="mt" style="margin-top:8px">${RATES.FOREIGN.map(c => `${c} ${rfmt(RATES.rate(c))}`).join(' / ')}（1 單位外幣 = 幾 TWD；到「設定」可更新或手動修改）</div>` : ''}${missWarn(miss)}
       ${hs.length + bf.length ? (stale ? `<div class="warn">有 ${stale} 項（股票現價、債券與基金價值）超過 7 天沒更新，最久 ${oldest} 天。記錄資產前請先更新。</div>` : '<div class="mt" style="margin-top:6px">價格與價值都是最近更新的。</div>') : ''}
       ${O || !(hs.length + bf.length) ? '' : '<div class="bar"><button class="btn main" data-a="batch">批次更新價格與價值</button></div>'}${msgHtml(msg ? { t: msg } : null)}</div>`;
     left += donutHtml([['台股', sTW.s, '--c1'], ['美股', sUS.s, '--c3']], '股票分布（以 NT$ 計）', '股票', '台股與美股分布圓環圖');

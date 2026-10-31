@@ -17,7 +17,7 @@ const OverviewPage = (() => {
     const dl = last ? A.total - last.total : 0;
     let left = `<div class="card"><div class="sec">目前總資產</div><div class="big">${tw(A.total)}</div>
       <div class="mt">${last ? `較上次記錄（${last.date}）<span class="${cls(dl)}">${sgn(dl)}（${dl >= 0 ? '+' : '−'}${last.total ? Math.abs(dl / last.total * 100).toFixed(1) : '0.0'}%）</span>` : '還沒有記錄'}</div>
-      <div class="mt">${RATES.FOREIGN.map(c => `${c} ${rfmt(RATES.rate(c))}`).join('、')}（1 單位外幣 = 幾 TWD）｜保險不計入總資產</div>${missWarn(A.miss)}
+      <div class="mt">${RATES.FOREIGN.map(c => `${c} ${rfmt(RATES.rate(c))}`).join(' / ')}（1 單位外幣 = 幾 TWD）｜保險不計入總資產</div>${missWarn(A.miss)}
       <div class="bar"><button class="btn main" data-a="rec">記錄這次資產</button><button class="btn" data-a="back">補登過去</button></div>${msgHtml(msg ? { t: msg } : null)}`;
     if (P && P.k == 'rec') left += `<div class="panel"><b>記錄這次資產</b><div class="mt">把目前各類別的總額與每個項目的明細存成一筆快照。記錄的是現在的金額；要補過去的資產請用「補登過去」。</div>
       <input type="date" id="pd" value="${todayStr()}" aria-label="快照日期" style="margin:8px 0"><table>${CATS.map(([k, n]) => `<tr><td>${n}</td><td>${tw(A.cat[k].s)}</td></tr>`).join('')}<tr><td><b>總資產</b></td><td><b>${tw(A.total)}</b></td></tr></table>
@@ -42,7 +42,7 @@ const OverviewPage = (() => {
     right += `<div class="card"><div class="sec">快照紀錄（${list.length}）</div><div class="sc"><table><tr><th>日期</th><th>總資產</th>${CATS.map(x => `<th>${x[1]}</th>`).join('')}<th></th></tr>${shown.map(s => `<tr><td>${s.date}${s.note ? `<span class="tag">${esc(s.note)}</span>` : ''}</td><td>${tw(s.total)}</td>${CATS.map(x => `<td>${tw(s[x[0]])}</td>`).join('')}<td>${del == s.id ? `<span class="err">刪除？</span> <button class="btn sm" data-a="dc">取消</button> <button class="btn sm" data-a="dok" data-id="${s.id}">刪除</button>` : `${(s.items || []).length ? `<button class="btn sm" data-a="det" data-id="${s.id}">${openId == s.id ? '收起' : '明細'}</button> ` : ''}<button class="btn sm" data-a="del" data-id="${s.id}">刪除</button>`}</td></tr>${openId == s.id ? `<tr><td colspan="7" style="text-align:left;white-space:normal">${detailHtml(s)}</td></tr>` : ''}`).join('')}</table></div>${list.length > 6 ? `<div class="r"><button class="btn sm" data-a="all">${showAll ? '只顯示最近 6 筆' : '顯示全部'}</button></div>` : ''}${list.length ? '' : '<div class="mt">還沒有快照。按「記錄這次資產」開始。</div>'}</div>`;
     return `<div class="cols"><div>${left}</div><div>${right}</div></div>`;
   }
-  const detailHtml = s => CATS.map(([k, n]) => { const l = (s.items || []).filter(i => i.k == k); return l.length ? `<div class="sec" style="margin:8px 0 2px">${n}</div>${l.map(i => `<div class="up"><span>${esc(i.n)}</span><span>${fmtMinor(i.v, 'TWD')}</span></div>`).join('')}` : ''; }).join('') + `<div class="mt" style="margin-top:6px">${s.rates ? '當時匯率：' + Object.entries(s.rates).map(([c, v]) => `${c} ${rfmt(v)}`).join('、') : ''}</div>`;
+  const detailHtml = s => CATS.map(([k, n]) => { const l = (s.items || []).filter(i => i.k == k); return l.length ? `<div class="sec" style="margin:8px 0 2px">${n}</div>${l.map(i => `<div class="up"><span>${esc(i.n)}</span><span>${fmtMinor(i.v, 'TWD')}</span></div>`).join('')}` : ''; }).join('') + `<div class="mt" style="margin-top:6px">${s.rates ? '當時匯率：' + Object.entries(s.rates).map(([c, v]) => `${c} ${rfmt(v)}`).join(' / ') : ''}</div>`;
 
   /* 走勢圖（純 SVG）。數值用 TWD 最小單位，座標軸顯示成 K／M。 */
   function chart(S) {
@@ -62,7 +62,7 @@ const OverviewPage = (() => {
   function bindChart() {
     const svg = $('#ch'), ro = $('#ro'); if (!svg || !CH) return;
     const show = i => { const s = CH.S[i], x = CH.X(s), mk = $('#mk'); mk.setAttribute('x1', x); mk.setAttribute('x2', x); mk.setAttribute('visibility', 'visible');
-      ro.innerHTML = `<b>${s.date}</b>　` + CH.keys.map(k => `<span style="white-space:nowrap">${CH.keys.length > 1 ? `<i style="display:inline-block;width:8px;height:8px;background:var(${k[2]});margin-right:4px"></i>${k[1]} ` : ''}${fmtMinor(s[k[0]], 'TWD')}</span>`).join('　'); };
+      ro.innerHTML = `<b>${s.date}</b>　` + CH.keys.map(k => `<span style="white-space:nowrap">${CH.keys.length > 1 ? `<i style="display:inline-block;width:8px;height:8px;background:var(${k[2]});margin-right:4px"></i><span>${k[1]}</span> ` : ''}${fmtMinor(s[k[0]], 'TWD')}</span>`).join('　'); };
     show(CH.S.length - 1);
     const mv = e => { const r = svg.getBoundingClientRect(), x = (e.clientX - r.left) / r.width * CH.W; let bi = 0; CH.S.forEach((s, i) => { if (Math.abs(CH.X(s) - x) < Math.abs(CH.X(CH.S[bi]) - x)) bi = i; }); show(bi); };
     svg.addEventListener('pointermove', mv); svg.addEventListener('pointerdown', mv);
